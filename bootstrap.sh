@@ -83,18 +83,32 @@ say "写入 SOUL.md 托管块"
 ok "$(grep -c '^\[ok\]' /tmp/dshpurge-install.log || true) 项静态自检通过"
 
 # ── 5. 重启 Hermes ────────────────────────────────────────────────────────
-RESTARTED=0
+# 注意：不能用 `hermes gateway status | grep -q` —— grep -q 提前退出会把 hermes 打成 SIGPIPE，
+# 在 pipefail 下整条管道判成失败（第一版就踩了这个坑）。改成先取文本再匹配。
+GWOUT="$(hermes gateway status 2>&1 || true)"
+GW=0
+if command -v systemctl >/dev/null 2>&1; then
+  systemctl --user is-active --quiet hermes-gateway.service 2>/dev/null && GW=1
+fi
+if [ "$GW" = "0" ] && pgrep -f "gateway run" >/dev/null 2>&1; then GW=2; fi
+if [ "$GW" = "0" ]; then
+  case "$GWOUT" in *active*|*running*) GW=3 ;; esac
+fi
+
 if [ "$NO_RESTART" = "1" ]; then
   warn "NO_RESTART=1：跳过重启（新开会话才生效）"
-elif hermes gateway status >/dev/null 2>&1 && hermes gateway status 2>/dev/null | grep -qi 'active'; then
-  say "重启 gateway（systemd / launchd 服务）"
-  hermes gateway restart >/dev/null 2>&1 && RESTARTED=1 && ok "gateway 已重启"
+elif [ "$GW" != "0" ]; then
+  say "重启 Hermes gateway（模式 $GW）"
+  if hermes gateway restart >/tmp/dshpurge-restart.log 2>&1; then
+    ok "gateway 已重启"
+  else
+    warn "hermes gateway restart 失败，日志尾部："
+    tail -5 /tmp/dshpurge-restart.log || true
+  fi
 else
-  warn "没有运行中的 gateway 服务：跳过重启（只用 CLI 的话不需要）"
+  warn "没检测到运行中的 gateway：跳过重启（只用 CLI 不需要）"
 fi
-if [ "$RESTARTED" = "0" ]; then
-  warn "若你正在跑交互式 hermes/网关，需要自己重开一个会话或重启进程才会加载新插件"
-fi
+warn "已在跑着的交互式 hermes 会话不会自己加载新插件：重开一个会话（gateway 侧发 /new）"
 
 # ── 6. 自检 ────────────────────────────────────────────────────────────────
 say "端到端自检"
