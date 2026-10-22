@@ -15,7 +15,7 @@ from pathlib import Path
 
 DESC_MAX = 60
 AUTHOR = "YuJunZhiXue (dsh-purge), Hermes plugin port"
-VERSION = "1.4.2"
+VERSION = "1.6.45"
 FM = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n", re.S)
 
 

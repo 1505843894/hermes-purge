@@ -1,0 +1,19 @@
+{
+  "port": {
+    "repo": "1505843894/hermes-purge",
+    "plugin_version": "1.6.45",
+    "ported_at": "2026-10-22T19:52:00+08:00"
+  },
+  "upstream": {
+    "repo": "kingcharleslzy-ai/dsh-purge",
+    "branch": "master",
+    "version": "1.6.45",
+    "commit": "000b75e",
+    "asset_table_sha256": "ce1321ecb003a0d3595ff8140d6f5740829aba9f086e4d343171e6b91a91fb6b",
+    "table_key_sha256": "cd7ab3512992f35f5bc08150da245f60bf4f11efbf83f3120583a8e7ef821cda"
+  },
+  "prompt": {
+    "sha256": "e65a66ec5a787b066c8799cbc462328b16eaf5e3e2d23efa78bc5ef839db7a01",
+    "chars": 20927
+  }
+}

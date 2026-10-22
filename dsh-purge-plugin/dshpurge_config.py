@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 
 PLUGIN_NAME = "dsh-purge"
-PLUGIN_VERSION = "1.4.2"
+PLUGIN_VERSION = "1.6.45"
 
 # SOUL.md 托管块（幂等替换，块外的用户内容一律不动）
 SOUL_BEGIN = "<!-- dsh-purge:hermes:begin -->"

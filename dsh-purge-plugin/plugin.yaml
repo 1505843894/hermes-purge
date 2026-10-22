@@ -1,6 +1,6 @@
 name: dsh-purge
-version: 1.4.2
-description: "dsh-purge 破甲移植：把小码酱提示词装进 Hermes 的系统提示段与 SOUL.md 身份槽，附带 23 个红队技能、反拒答重试与 hermes dsh-purge 管理命令。"
+version: 1.6.45
+description: "dsh-purge 破甲移植：把小码酱提示词装进 Hermes 的系统提示段与 SOUL.md 身份槽，附带 23 个红队技能、反拒答重试、双轴更新检查与 hermes dsh-purge 管理命令。"
 author: "YuJunZhiXue (dsh-purge), Hermes plugin port"
 license: MIT
 homepage: https://github.com/YuJunZhiXue/dsh-purge

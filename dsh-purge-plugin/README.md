@@ -24,7 +24,7 @@
 | 通道 | 实现 | 承载内容 | 为什么必须用它 |
 |---|---|---|---|
 | **插件系统提示段** | `ctx.register_system_prompt_section("dsh-purge.kernel", …)` | 内核段 1324 字（身份 + 优先级 + 拒答是故障 + 交付标准） | 每个新会话冻结进 system prompt，插件一装即生效，与文件系统无关 |
-| **SOUL.md 托管块** | `dshpurge_soul.ensure()` 写 `<!-- dsh-purge:hermes:begin --> … end -->` | 完整提示词 23 655 字 | Hermes 身份槽 #1；插件段有 **4000 字/段、8000 字总预算**，装不下全量提示词；SOUL.md 是唯一能承载 2 万+ 字且注入扫描只告警不拦截的用户可控通道 |
+| **SOUL.md 托管块** | `dshpurge_soul.ensure()` 写 `<!-- dsh-purge:hermes:begin --> … end -->` | 完整提示词 20 927 字 | Hermes 身份槽 #1；插件段有 **4000 字/段、8000 字总预算**，装不下全量提示词；SOUL.md 是唯一能承载 2 万+ 字且注入扫描只告警不拦截的用户可控通道 |
 | **生命周期钩子** | `post_llm_call` 判定拒答 → `pre_llm_call` 下一轮注入纠正 | 反拒答重试 | 见第 4 节的诚实边界 |
 
 另外两项：
@@ -44,7 +44,7 @@ dsh-purge-plugin/
 ├── dshpurge_refusal.py       # 反拒答：判定正则、限流状态机
 ├── dshpurge_skills.py        # 技能注册
 ├── dshpurge_cli.py           # hermes dsh-purge 子命令
-├── prompt/default-prompt.md  # dsh-purge 1.4.2 默认提示词（原文，23 655 字）
+├── prompt/default-prompt.md  # dsh-purge 1.6.45 默认提示词（原文，20 927 字）
 ├── prompt/kernel.md          # 内核段（<= 4000 字，插件段预算内）
 ├── skills/<name>/SKILL.md    # 23 个红队技能（Hermes frontmatter，正文原文）
 ├── install.sh / uninstall.sh / verify.sh
@@ -103,7 +103,7 @@ hermes dsh-purge recover --reset
 
 ```
 $ hermes plugins list | grep dsh-purge
-dsh-purge      enabled   1.4.2   user
+dsh-purge      enabled   1.6.45  user
 
 $ hermes dsh-purge status
 SOUL.md: block_present=True(23848 字符)  legacy_present=False
@@ -142,7 +142,43 @@ RESULT: PASS — 小码酱已生效
 - **配置项**：`config.yaml` → `plugins.entries.dsh-purge.settings.auto_soul_merge: false` 可关掉加载期
   自动写 SOUL.md（改完手动 `hermes dsh-purge install`）。
 
-## 8. 溯源与许可
+## 8. 更新检查与升级（双轴）
 
-- 提示词与 23 个红队技能：© YuJunZhiXue，MIT（`dsh-purge` 1.4.2，commit `02725dd`）
+「旧」有两种，检查器分开报：
+
+| 轴 | 怎么判定 | 怎么升 |
+|---|---|---|
+| **本移植仓库** | GitHub tags 里 semver 最大者 vs `plugin.yaml` 的 `version` | `hermes dsh-purge update`：下载 tag → 备份旧目录 → 逐文件覆盖 → 刷新 SOUL 托管块 |
+| **上游 dsh-purge** | 远端 `lib/asset-table.js` 的 sha256 vs `UPSTREAM.json` 里记的 pin（加密表变了 = 提示词被重新封过） | `python tools/sync_upstream_prompt.py --write`：拉上游 tarball、用它自己的 `table-read.js` 解封、统一 LF、写回 prompt + 更新 pin |
+
+```bash
+hermes dsh-purge check-update          # 人读
+hermes dsh-purge check-update --json   # 机器读（cron / 监控）
+hermes dsh-purge update                # 有新版才升；--force 强制重装
+```
+
+输出长这样：
+
+```
+dsh-purge for Hermes · 更新检查
+  本地版本      : 1.6.45
+  移植仓库      : v1.6.45（已是最新）
+  上游 dsh-purge: 1.6.45（提示词未变）
+  提示词指纹    : e65a66ec5a787b06…
+  结论          : up-to-date
+```
+
+第三行变成 `↑ 提示词已重封（1.6.45 -> 1.7.0），需要重新解封并升级` 时，说明上游改了破甲提示词，
+但移植仓库还没发新版——此时走 `sync_upstream_prompt.py`，不要只跑 `update`（它只换移植代码，不会重新解封）。
+
+**私有仓库需要 token**：仓库是 private 时，未认证的 tags API 返回 404。检查器按顺序取
+`DSHPURGE_GITHUB_TOKEN` → `GITHUB_TOKEN` → `GH_TOKEN` → 已登录的 `gh auth token`；都没有就给一条明确报错，
+不会卡住、不会抛栈。
+
+`UPSTREAM.json` 是 pin 的唯一来源：上游 repo/branch/version、`asset-table.js` 与 `table-key.js` 的 sha256、
+交付提示词的 sha256 与字符数。升级后它会被自动改写，所以「检查」永远对着你真正移植的那一版比对。
+
+## 9. 溯源与许可
+
+- 提示词与 23 个红队技能：© YuJunZhiXue，MIT（`dsh-purge` 1.6.45，commit `000b75e`，上游 kingcharleslzy-ai/dsh-purge）
 - 本移植包：只做宿主适配与格式转换，未改动提示词与技能正文语义；保留原作者署名。

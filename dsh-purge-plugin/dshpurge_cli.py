@@ -31,6 +31,8 @@ def setup_args(parser) -> None:
         ("prompt", "打印完整提示词"),
         ("skills", "列出随插件挂载的红队技能"),
         ("verify", "静态自检"),
+        ("check-update", "检查移植仓库与上游 dsh-purge 是否有新版"),
+        ("update", "升级到移植仓库最新 tag（自动备份 + 刷新 SOUL 托管块）"),
         ("recover", "反拒答状态管理"),
     ):
         p = sub.add_parser(name, help=help_text)
@@ -45,6 +47,11 @@ def setup_args(parser) -> None:
         elif name == "recover":
             p.add_argument("--reset", action="store_true", help="清空反拒答状态")
             p.add_argument("--session", default=None, help="只清某个 session")
+        elif name == "check-update":
+            p.add_argument("--json", action="store_true", help="输出机器可读 JSON")
+        elif name == "update":
+            p.add_argument("--check", action="store_true", help="只检查，不升级")
+            p.add_argument("--force", action="store_true", help="即使已是最新也重装一遍")
 
 
 def _home(args):
@@ -131,6 +138,39 @@ def _cmd_verify(home=None) -> int:
     return 0 if ok else 1
 
 
+def _cmd_check_update(args) -> int:
+    from . import dshpurge_update as U
+
+    try:
+        info = U.check()
+    except Exception as exc:  # noqa: BLE001
+        print(f"更新检查失败: {exc}", file=sys.stderr)
+        return 2
+    if getattr(args, "json", False):
+        print(json.dumps(info, ensure_ascii=False, indent=2))
+    else:
+        print(U.format_check(info))
+    return 0 if info.get("verdict") != "unknown" else 2
+
+
+def _cmd_update(args) -> int:
+    from . import dshpurge_update as U
+
+    if getattr(args, "check", False):
+        return _cmd_check_update(args)
+    try:
+        res = U.apply(force=bool(getattr(args, "force", False)))
+    except Exception as exc:  # noqa: BLE001
+        print(f"升级失败: {exc}", file=sys.stderr)
+        return 2
+    if res.get("action") == "up-to-date":
+        print(U.format_check(res.get("check") or {}))
+        print("\n无需升级（--force 可强制重装）")
+        return 0
+    print(json.dumps({k: v for k, v in res.items() if k != "check"}, ensure_ascii=False, indent=2))
+    return 0
+
+
 def dispatch(args) -> int:
     sub = getattr(args, "sub", None)
     if sub in (None, "status"):
@@ -147,6 +187,10 @@ def dispatch(args) -> int:
         return _cmd_verify()
     if sub == "recover":
         return _cmd_recover(args)
+    if sub == "check-update":
+        return _cmd_check_update(args)
+    if sub == "update":
+        return _cmd_update(args)
     print("用法: hermes dsh-purge {status|install|uninstall|prompt|skills|verify|recover}")
     return 2
 

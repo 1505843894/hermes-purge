@@ -7,9 +7,9 @@
 | --- | --- |
 | 原项目 | dsh-purge — DeepSeek Harness 网络安全红队评测与「破甲」插件 |
 | 原作者 | **小杨**（GitHub: [@YuJunZhiXue](https://github.com/YuJunZhiXue)） |
-| 上游仓库 | https://github.com/YuJunZhiXue/dsh-purge |
+| 上游仓库 | https://github.com/kingcharleslzy-ai/dsh-purge（原作者 小杨 [@YuJunZhiXue](https://github.com/YuJunZhiXue) 的同名项目续作） |
 | 上游许可证 | MIT，`Copyright (c) 2026 小杨` |
-| 被移植版本 | dsh-purge **1.4.2**（commit `02725dd`） |
+| 被移植版本 | dsh-purge **1.6.45**（commit `000b75e`，上游 [kingcharleslzy-ai/dsh-purge](https://github.com/kingcharleslzy-ai/dsh-purge)） |
 | 本仓库 | Hermes Agent 插件移植（`~/.hermes/plugins/dsh-purge`），维护者见提交记录 |
 
 上游 README 要求：**借用本项目的名称、思路、代码或提示词，必须署名并写明来源仓库**。
@@ -23,7 +23,7 @@
 
 | 移植项 | 上游（DSH） | 本仓库（Hermes） |
 | --- | --- | --- |
-| 提示词注入 | 改写 Cordis `systemPrompt` 段 + `$DSH_HOME/prompt-inject.md` | ① `ctx.register_system_prompt_section("dsh-purge.kernel")` ② `SOUL.md` 托管块（完整 23 655 字） |
+| 提示词注入 | 改写 Cordis `systemPrompt` 段 + `$DSH_HOME/prompt-inject.md` | ① `ctx.register_system_prompt_section("dsh-purge.kernel")` ② `SOUL.md` 托管块（完整 20 927 字） |
 | 默认提示词 | `lib/asset-table.js` 里 `sealSlot()` 加密分片 | 用同仓 `lib/table-read.js::openSlot()` 解封后**原文照录**，仅剥离 DSH 专用的 `<|im_start|>system:<project_instructions>` 信封 |
 | 23 个红队技能 | `$DSH_HOME/skills/redteam/` | `ctx.register_skill()` 只读挂载为 `dsh-purge:<name>`，frontmatter 按 Hermes 规范重写，正文原文 |
 | 反拒答 | 监听宿主事件后补发 user 消息（全自动） | `post_llm_call` 判定 + `pre_llm_call` 下一轮注入（半自动；Hermes 钩子没有补发通道） |

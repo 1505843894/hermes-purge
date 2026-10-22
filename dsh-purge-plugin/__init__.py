@@ -19,7 +19,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-__version__ = "1.4.2"
+__version__ = "1.6.45"
 
 
 def _install_soul(reason: str) -> None:

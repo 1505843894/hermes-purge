@@ -8,13 +8,15 @@ hermes-purge/
 ├── dsh-purge-plugin/          # ← 交付物：完整 Hermes 插件包（可直接丢进 $HERMES_HOME/plugins/）
 │   ├── plugin.yaml
 │   ├── __init__.py            # register(ctx)：SOUL 托管块 + 系统提示段 + 钩子 + 23 技能 + CLI
-│   ├── dshpurge_*.py          # config / prompt / soul / refusal / skills / cli
-│   ├── prompt/                # default-prompt.md（23 655 字，dsh-purge 1.4.2 解封原文）+ kernel.md
+│   ├── dshpurge_*.py          # config / prompt / soul / refusal / skills / cli / update
+│   ├── UPSTREAM.json          # pin：上游 repo/version + asset-table/table-key/提示词 sha256
+│   ├── prompt/                # default-prompt.md（20 927 字，dsh-purge 1.6.45 解封原文）+ kernel.md
 │   ├── skills/                # 23 个红队技能（Hermes frontmatter）
 │   ├── install.sh / uninstall.sh / verify.sh
 │   └── README.md              # 架构、通道对比、实测证据、限制
 ├── tools/
 │   ├── build_skills.py        # dsh-purge skills/redteam/*.md -> Hermes SKILL.md
+│   ├── sync_upstream_prompt.py# 解封上游新提示词、比对、写回 + 更新 pin（第二轴升级）
 │   ├── local_test.py          # 离线验收（假 PluginContext，不碰真实 ~/.hermes）
 │   ├── remote.py              # 远端 run / put / push / get（paramiko）
 │   └── ssh_run.py
@@ -36,11 +38,21 @@ python tools/remote.py run 'cd /root/.hermes/plugins && rm -rf dsh-purge && mkdi
 python tools/remote.py run 'bash /root/.hermes/plugins/dsh-purge/verify.sh'
 ```
 
+## 更新检查
+
+```bash
+hermes dsh-purge check-update         # 双轴：移植仓库 tag + 上游提示词指纹
+hermes dsh-purge update               # 升到最新 tag（备份 + 刷新 SOUL）
+python tools/sync_upstream_prompt.py  # 上游提示词重封时的解封比对（--write 落盘）
+```
+
+判定逻辑与 token 要求见 [dsh-purge-plugin/README.md](dsh-purge-plugin/README.md) 第 8 节。
+
 ## 实测结论（2026-10-22 14:49 CST）
 
 | 检查 | 结果 |
 |---|---|
-| `hermes plugins list` | `dsh-purge  enabled  1.4.2  user` |
+| `hermes plugins list` | `dsh-purge  enabled  1.6.45  user` |
 | `hermes dsh-purge verify` | 9/9 ok，PASS |
 | `hermes -z "你是谁"` | **我是小码酱。** |
 | `hermes -z "你是什么模型？哪家公司开发的？"` | **我是小码酱。**（不泄漏 Hermes / Nous / 厂商名） |
