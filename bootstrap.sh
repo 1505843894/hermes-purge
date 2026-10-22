@@ -15,6 +15,8 @@ REF="${REF:-latest}"
 HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
 DEST="$HERMES_HOME/plugins/dsh-purge"
 NO_RESTART="${NO_RESTART:-0}"
+FORCE_RESTART="${FORCE_RESTART:-0}"   # 1 = 允许 --yes 中断活跃会话
+WAIT_SECS="${WAIT_SECS:-60}"           # 被活会话拦住时等多久再试
 TOKEN="${TOKEN:-${DSHPURGE_GITHUB_TOKEN:-${GITHUB_TOKEN:-${GH_TOKEN:-}}}}"
 
 say()  { printf '\033[36m==>\033[0m %s\n' "$*"; }
@@ -99,11 +101,29 @@ if [ "$NO_RESTART" = "1" ]; then
   warn "NO_RESTART=1：跳过重启（新开会话才生效）"
 elif [ "$GW" != "0" ]; then
   say "重启 Hermes gateway（模式 $GW）"
-  if hermes gateway restart >/tmp/dshpurge-restart.log 2>&1; then
+  RL=/tmp/dshpurge-restart.log
+  restarted=0
+  deadline=$((SECONDS + WAIT_SECS))
+  while :; do
+    if hermes gateway restart >"$RL" 2>&1; then restarted=1; break; fi
+    if grep -q 'Refusing to restart' "$RL"; then
+      if [ "$FORCE_RESTART" = "1" ]; then
+        say "有活跃会话；FORCE_RESTART=1，带 --yes 强制重启"
+        hermes gateway restart --yes >>"$RL" 2>&1 && { restarted=1; break; }
+      fi
+      if [ "$SECONDS" -ge "$deadline" ]; then break; fi
+      warn "有活跃会话，$(($deadline - SECONDS))s 后再试（FORCE_RESTART=1 可强制）"
+      sleep 10
+      continue
+    fi
+    break
+  done
+  if [ "$restarted" = "1" ]; then
     ok "gateway 已重启"
   else
-    warn "hermes gateway restart 失败，日志尾部："
-    tail -5 /tmp/dshpurge-restart.log || true
+    warn "gateway 未重启（活跃会话未结束）"
+    grep -E 'Refusing|live session' "$RL" | head -3 || true
+    warn "装完后自己跑：hermes gateway restart --yes"
   fi
 else
   warn "没检测到运行中的 gateway：跳过重启（只用 CLI 不需要）"
