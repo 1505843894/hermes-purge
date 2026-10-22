@@ -1,0 +1,12 @@
+# 统一换行：脚本必须 LF，否则在 Linux 上 bash 会报 $'\r' 错误
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.yaml text eol=lf
+*.slugignore text eol=lf
+
+# 二进制
+*.tgz binary
+*.zip binary
+*.png binary

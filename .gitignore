@@ -1,0 +1,14 @@
+# 运行/构建产物
+build/
+__pycache__/
+*.pyc
+*.pyo
+.dsh-ops-*
+*.bak
+*.bak.*
+
+# 本地临时
+.venv/
+node_modules/
+.DS_Store
+Thumbs.db
