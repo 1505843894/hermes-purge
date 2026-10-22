@@ -25,6 +25,15 @@ hermes-purge/
     └── dsh-purge-plugin.zip
 ```
 
+## 一键安装（任意 VPS）
+
+```bash
+mkdir -p /tmp/hp && curl -fsSL https://codeload.github.com/1505843894/hermes-purge/tar.gz/refs/heads/main | tar -xz -C /tmp/hp --strip-components=1 && bash /tmp/hp/bootstrap.sh
+```
+
+拉最新 tag → 备份旧插件 → 装到 `$HERMES_HOME/plugins/dsh-purge` → 写 SOUL 托管块 → `hermes plugins enable`
+→ 重启 gateway（有活跃会话就等 60s，`FORCE_RESTART=1` 才强杀）→ 端到端自检。
+
 ## 三分钟复现
 
 ```bash

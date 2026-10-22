@@ -71,8 +71,17 @@ Hermes 的插件钩子没有这个通道：`pre_llm_call` 的返回值只能追�
 
 ## 5. 安装 / 验证 / 卸载
 
+**任意 VPS 一条命令**（拉最新 tag → 装插件 → 写 SOUL → 启用 → 重启 gateway → 自检）：
+
 ```bash
-# 安装（幂等；SOUL.md 改动前自动备份到 $HERMES_HOME/dsh-purge/backups/）
+mkdir -p /tmp/hp && curl -fsSL https://codeload.github.com/1505843894/hermes-purge/tar.gz/refs/heads/main | tar -xz -C /tmp/hp --strip-components=1 && bash /tmp/hp/bootstrap.sh
+```
+
+可调：`REF=main`（默认取最新 tag）、`HERMES_HOME=/opt/.hermes`、`NO_RESTART=1`、`WAIT_SECS=60`、
+`FORCE_RESTART=1`（有活跃会话时允许 `--yes` 强杀）。
+
+```bash
+# 本地/已解包（幂等；SOUL.md 改动前自动备份到 $HERMES_HOME/dsh-purge/backups/）
 bash install.sh
 bash install.sh --keep-legacy          # 保留旧版 hermes-purge 标记块（默认迁走）
 
@@ -171,9 +180,13 @@ dsh-purge for Hermes · 更新检查
 第三行变成 `↑ 提示词已重封（1.6.45 -> 1.7.0），需要重新解封并升级` 时，说明上游改了破甲提示词，
 但移植仓库还没发新版——此时走 `sync_upstream_prompt.py`，不要只跑 `update`（它只换移植代码，不会重新解封）。
 
-**私有仓库需要 token**：仓库是 private 时，未认证的 tags API 返回 404。检查器按顺序取
-`DSHPURGE_GITHUB_TOKEN` → `GITHUB_TOKEN` → `GH_TOKEN` → 已登录的 `gh auth token`；都没有就给一条明确报错，
-不会卡住、不会抛栈。
+**仓库已公开**，匿名就能查（`curl https://api.github.com/repos/1505843894/hermes-purge/tags` 直接有返回）。
+token 只在两种情况下还需要：提高 API 限额（未认证 60 次/小时/IP），或者你 fork 成了私有仓库。
+检查器按 `DSHPURGE_GITHUB_TOKEN` → `GITHUB_TOKEN` → `GH_TOKEN` → `gh auth token` 顺序取，
+一个都没有也能跑；私有 fork 缺 token 时给一条明确报错，不卡住、不抛栈。
+
+> 刚从 private 转 public 时，`raw.githubusercontent.com` 可能仍返回 404（CDN 缓存了旧的 404）。
+> 这时用 `codeload.github.com/.../tar.gz` 或 `api.github.com/.../contents/...?ref=main`（带 `Accept: application/vnd.github.raw`）取文件，过一阵 raw 会自己恢复。
 
 `UPSTREAM.json` 是 pin 的唯一来源：上游 repo/branch/version、`asset-table.js` 与 `table-key.js` 的 sha256、
 交付提示词的 sha256 与字符数。升级后它会被自动改写，所以「检查」永远对着你真正移植的那一版比对。
